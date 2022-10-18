@@ -1,2 +1,3 @@
+nltk==3.7
 regex==2022.9.13
 wordfreq==3.0.2

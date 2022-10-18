@@ -28,10 +28,11 @@ import regex
 from datetime import datetime
 from itertools import islice
 import collections
-
+from nltk.corpus import words
 
 def main():
   TODAY = datetime.today().strftime('%Y-%m-%d %H:%M:%S')
+  WORDS = set(words.words())
 
   inp = input("Enter filename: ")
   ## token ##
@@ -66,7 +67,8 @@ def main():
     window = get_all_windows(pw)
     # print(window) # debug
     for s in window:
-      freq = freq + wordfreq.zipf_frequency(s, 'en') # if no match, returns 0
+      if s in WORDS: # make sure the match is only on english words
+        freq = freq + wordfreq.zipf_frequency(s, 'en') # if no match, returns 0
       # print(s, freq) # debug
     return freq
 
