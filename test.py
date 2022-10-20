@@ -21,7 +21,10 @@ def get_all_windows(s):
     n = n - 1
   return all_windows
 
-print(get_all_windows("DYpmCgPt")) # => ['DYpmCgPt', 'DYpmCgP', 'YpmCgPt', 'DYpmCg', 'YpmCgP', 'pmCgPt', 'DYpmC', 'YpmCg', 'pmCgP', 'mCgPt', 'DYpm', 'YpmC', 'pmCg', 'mCgP', 'CgPt', 'DYp', 'Ypm', 'pmC', 'mCg', 'CgP', 'gPt']
+print(get_all_windows("DYpmCgPt")) 
+# => ['DYpmCgPt', 'DYpmCgP', 'YpmCgPt', 'DYpmCg', 'YpmCgP', 'pmCgPt', 
+# 'DYpmC', 'YpmCg', 'pmCgP', 'mCgPt', 'DYpm', 'YpmC', 'pmCg', 'mCgP', 
+# 'CgPt', 'DYp', 'Ypm', 'pmC', 'mCg', 'CgP', 'gPt']
 
 def shannon(s):
   counts = Counter(s) # count elements from the string

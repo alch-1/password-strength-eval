@@ -2,14 +2,6 @@
 
 # From the zxcvbn paper, the following are some ideas for evaluating passwords strength
 
-# token logitech l0giT3CH ain’t parliamentarian 1232323q
-# reversed DrowssaP
-# sequence 123 2468 jklm ywusq
-# repeat zzz ababab l0giT3CHl0giT3CH
-# keyboard qwertyuio qAzxcde3 diueoa
-# date 7/8/1947 8.7.47 781947 4778 7-21-2011 72111 11.7.21
-# bruteforce x$JQhMzt
-
 # classes
 # l   = letters
 # ld  = letters and digits
@@ -23,7 +15,6 @@
 # 
 
 # first we need a dictionary with frequency.
-from re import I
 import wordfreq
 import math
 import regex
@@ -33,6 +24,7 @@ import collections
 from nltk.corpus import words
 from collections import Counter
 from math import log
+import csv
 
 
 def main():
@@ -40,6 +32,7 @@ def main():
   WORDS = set(words.words())
   ## read data
   inp = input("Enter filename: ")
+
   with open(inp, "r+") as f:
     lines = f.readlines()
   lines = [line.rstrip() for line in lines]
@@ -78,50 +71,13 @@ def main():
       # print(s, freq) # debug
     return freq
 
-  ## sequence ##
-  seq = (
-    '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', 
-    '=', "Q", 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']', '\\',
-    'A', "S", 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';' ,"'",
-    'Z', 'X', 'C', 'V', 'B', "N", 'M', ',', '.', '/'
-  )
-
-  def check_sequence(line):
-    line = line.upper()
-    start = math.inf
-    end = math.inf
-    for i in range(0, len(line) - 1):
-      started = False
-      current = line[i]
-      if current == '/':
-        pass
-      elif current in seq: 
-        if start == math.inf:
-          start = i
-        # find index
-        nxt_index = seq.index(current) + 1
-        # check for next
-        try:
-          nxt_expected = line[nxt_index]
-          nxt = line[i + 1]
-          if nxt == nxt_expected:
-            end = i + 1
-        except Exception:
-          pass
-    # we only want matches with length of 3 chars or more
-    if end == math.inf or abs(end - start) <= 2: 
-      print("sequence: no match")
-      return False
-    else:
-      return (start, end)
-
   ## repeat ##
   # check for any character repeated 3 times or more
   def check_repeat(line):
     repeat3 = regex.compile(r"(.)\1{2,}")
     result = repeat3.search(line)
     if result == None:
-      print("repeat: no match")
+      # print("repeat: no match")
       return False # no match
     else:
       print(result)
@@ -134,7 +90,7 @@ def main():
     datematch = regex.compile(r"^(?:(?:31(\/|-|\.)(?:0?[13578]|1[02]|(?:Jan|Mar|May|Jul|Aug|Oct|Dec)))\1|(?:(?:29|30)(\/|-|\.)(?:0?[1,3-9]|1[0-2]|(?:Jan|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))\2))(?:(?:1[6-9]|[2-9]\d)?\d{2})$|^(?:29(\/|-|\.)(?:0?2|(?:Feb))\3(?:(?:(?:1[6-9]|[2-9]\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\d|2[0-8])(\/|-|\.)(?:(?:0?[1-9]|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep))|(?:1[0-2]|(?:Oct|Nov|Dec)))\4(?:(?:1[6-9]|[2-9]\d)?\d{2})$")
     result = datematch.search(line)
     if result == None:
-      print("date: no match")
+      # print("date: no match")
       return False # no match
     else:
       print(result)
@@ -154,30 +110,69 @@ def main():
 
 
   ## run strength checker ##
+
   with open("logs.txt", "a+") as f:
-    # f.write("===" + TODAY + ", " + inp + "===" + "\n")
+    f.write("===" + TODAY + ", " + inp + "===" + "\n")
+    to_csv = []
     for line in lines:
+      score = 0
       print("---")
       print(line)
-      print("token", check_token(line))
-      repeattuple = check_repeat(line)
-      sequencetuple = check_sequence(line)
+      token_result = check_token(line)
+      print("token:", token_result)
+      # score:
+      if token_result < 8:
+        score = score + 5
+      elif token_result < 10:
+        score = score + 4
+      elif token_result < 12:
+        score = score + 3
+      elif token_result < 14:
+        score = score + 2
+      elif token_result < 16:
+        score = score + 1
 
-      print("repeat", repeattuple)
-      print('sequence', sequencetuple)
+
+      repeattuple = check_repeat(line)
+      print("repeat: " + str(repeattuple))
+      f.write("repeat: " + str(repeattuple) + "\n")
+
       if repeattuple != False:
         start = repeattuple[0]
         end = repeattuple[1]
         line = line[:start] + line[end + 1:]
+      else:
+        score = score + 5
       
       datetuple = check_date(line)
+      print("date: " + str(datetuple))
+      f.write("date: " + str(datetuple) + "\n")
       if datetuple != False:
         start = datetuple[0]
         end = datetuple[1]
         line = line[:start] + line[end + 1:]
+      else:
+        score = score + 5
       
-      print('entropy', shannon(line))
-
-
+      entropy = shannon(line)
+      print('entropy:', entropy)
+      f.write('entropy: ' + str(entropy) + "\n")
+      if entropy >= 70:
+        score += 10
+      elif entropy >= 56:
+        score += 8
+      elif entropy >= 42:
+        score += 6
+      elif entropy >= 28:
+        score += 4
+      elif entropy >= 14:
+        score += 2
+      print("final score:", score, "/ 25")
+      f.write("final score: " + str(score) +  " / 25\n")
+      to_csv.append([line, score])
+    with open(inp + '.csv', 'w+', encoding='UTF8', newline='') as f1:
+      writer = csv.writer(f1)
+      writer.writerow(['password', 'score'])
+      writer.writerows(to_csv)
 if __name__ == "__main__":
   main()
