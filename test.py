@@ -1,5 +1,7 @@
 import collections
 from itertools import islice
+from collections import Counter
+from math import log
 
 def sliding_window(iterable, n):
   # sliding_window('ABCDEFG', 4) -> ABCD BCDE CDEF DEFG
@@ -20,3 +22,10 @@ def get_all_windows(s):
   return all_windows
 
 print(get_all_windows("DYpmCgPt")) # => ['DYpmCgPt', 'DYpmCgP', 'YpmCgPt', 'DYpmCg', 'YpmCgP', 'pmCgPt', 'DYpmC', 'YpmCg', 'pmCgP', 'mCgPt', 'DYpm', 'YpmC', 'pmCg', 'mCgP', 'CgPt', 'DYp', 'Ypm', 'pmC', 'mCg', 'CgP', 'gPt']
+
+def shannon(s):
+  counts = Counter(s) # count elements from the string
+  freq = [(i / len(s)) for i in counts.values()]
+  return -sum(f * log(f, 2) for f in freq)
+
+print(shannon("DYpmCgPt"))
