@@ -1,14 +1,5 @@
 # Author: Aldric
 
-# From the zxcvbn paper, the following are some ideas for evaluating passwords strength
-
-# classes
-# l   = letters
-# ld  = letters and digits
-# lds = letters, digits and symbols
-
-# length: 8, 12 and 20
-
 # sources
 # https://manytools.org/network/password-generator/
 # https://passwordgeneratorapp.com/multiple-password-generator/
@@ -30,13 +21,41 @@ import csv
 def main():
   TODAY = datetime.today().strftime('%Y-%m-%d %H:%M:%S')
   WORDS = set(words.words())
-  ## read data
-  inp = input("Enter filename: ")
 
-  with open(inp, "r+") as f:
-    lines = f.readlines()
-  lines = [line.rstrip() for line in lines]
+  ## run strength checker ##
+  files_to_check = [
+    "manytools-8-l.txt",
+    "manytools-8-ld.txt",
+    "manytools-8-lds.txt",
+    "manytools-12-l.txt",
+    "manytools-12-ld.txt",
+    "manytools-12-lds.txt",
+    "manytools-20-l.txt",
+    "manytools-20-ld.txt",
+    "manytools-20-lds.txt",
 
+    "pwgen-8-l.txt",
+    "pwgen-8-ld.txt",
+    "pwgen-8-lds.txt",
+    "pwgen-12-l.txt",
+    "pwgen-12-ld.txt",
+    "pwgen-12-lds.txt",
+    "pwgen-20-l.txt",
+    "pwgen-20-ld.txt",
+    "pwgen-20-lds.txt",
+
+    "python-8-l.txt",
+    "python-8-ld.txt",
+    "python-8-lds.txt",
+    "python-12-l.txt",
+    "python-12-ld.txt",
+    "python-12-lds.txt",
+    "python-20-l.txt",
+    "python-20-ld.txt",
+    "python-20-lds.txt"
+  ]
+
+  
   ## token ##
   # check for words in the string
   # sliding window algorithm
@@ -101,78 +120,110 @@ def main():
 
   ## bruteforce ## 
   # check for brute-force-ability
-  # calculate Shannon entropy of string
-  def shannon(s):
-    counts = Counter(s) # count elements from the string
-    length = len(s)
-    freq = [(i / length) for i in counts.values()]
-    return -(sum(f * log(f, 2) for f in freq)) * length
+  # calculate entropy of string
+  def get_entropy(s) -> float:
+    # https://www.pleacher.com/mp/mlessons/algebra/entropy.html
+    # https://en.wikipedia.org/wiki/Password_strength#Required_bits_of_entropy
+    # check for char set
+    lowercase = regex.findall(r"[a-z]+", s) # 26
+    uppercase = regex.findall(r"[A-Z]+", s) # 26
+    numbers = regex.findall(r"[0-9]+", s) # 10
+    symbols = regex.findall(r"[-!$%^&*()_+|~=`{}\\[\]:\";'<>?,.\/@#]+", s) # 32
+    
+    # print(lowercase, uppercase, numbers, symbols)
+    # E = log_2(N ** L)
+    n = 0
+    if lowercase: 
+      n += 26
+    if uppercase: 
+      n += 26
+    if numbers: 
+      n += 10
+    if symbols: 
+      n += 32
+
+    l = len(s)
+
+    entropy = log(n ** l, 2)
+
+    return entropy
 
 
-  ## run strength checker ##
+  ########
+  ## read data
+  # inp = input("Enter filename: ")
 
-  with open("logs.txt", "a+") as f:
-    f.write("===" + TODAY + ", " + inp + "===" + "\n")
-    to_csv = []
-    for line in lines:
-      score = 0
-      print("---")
-      print(line)
-      token_result = check_token(line)
-      print("token:", token_result)
-      # score:
-      if token_result < 8:
-        score = score + 5
-      elif token_result < 10:
-        score = score + 4
-      elif token_result < 12:
-        score = score + 3
-      elif token_result < 14:
-        score = score + 2
-      elif token_result < 16:
-        score = score + 1
+  for inp in files_to_check:
+    sum_score = 0
+    count = 0
+    with open(inp, "r+") as f:
+      lines = f.readlines()
+      lines = [line.rstrip() for line in lines]
+    
+    with open("logs-test.txt", "a+") as f:
+      f.write("===" + TODAY + ", " + inp + "===" + "\n")
+      to_csv = []
+      for line in lines:
+        score = 0
+        print("---")
+        print(line)
+        token_result = check_token(line)
+        print("token:", token_result)
+        # score:
+        if token_result < 8:
+          score = score + 5
+        elif token_result < 10:
+          score = score + 4
+        elif token_result < 12:
+          score = score + 3
+        elif token_result < 14:
+          score = score + 2
+        elif token_result < 16:
+          score = score + 1
 
 
-      repeattuple = check_repeat(line)
-      print("repeat: " + str(repeattuple))
-      f.write("repeat: " + str(repeattuple) + "\n")
+        repeattuple = check_repeat(line)
+        print("repeat: " + str(repeattuple))
+        f.write("repeat: " + str(repeattuple) + "\n")
 
-      if repeattuple != False:
-        start = repeattuple[0]
-        end = repeattuple[1]
-        line = line[:start] + line[end + 1:]
-      else:
-        score = score + 5
-      
-      datetuple = check_date(line)
-      print("date: " + str(datetuple))
-      f.write("date: " + str(datetuple) + "\n")
-      if datetuple != False:
-        start = datetuple[0]
-        end = datetuple[1]
-        line = line[:start] + line[end + 1:]
-      else:
-        score = score + 5
-      
-      entropy = shannon(line)
-      print('entropy:', entropy)
-      f.write('entropy: ' + str(entropy) + "\n")
-      if entropy >= 70:
-        score += 10
-      elif entropy >= 56:
-        score += 8
-      elif entropy >= 42:
-        score += 6
-      elif entropy >= 28:
-        score += 4
-      elif entropy >= 14:
-        score += 2
-      print("final score:", score, "/ 25")
-      f.write("final score: " + str(score) +  " / 25\n")
-      to_csv.append([line, score])
-    with open(inp + '.csv', 'w+', encoding='UTF8', newline='') as f1:
-      writer = csv.writer(f1)
-      writer.writerow(['password', 'score'])
-      writer.writerows(to_csv)
+        if repeattuple != False:
+          start = repeattuple[0]
+          end = repeattuple[1]
+          line = line[:start] + line[end + 1:]
+        else:
+          score = score + 5
+        
+        datetuple = check_date(line)
+        print("date: " + str(datetuple))
+        f.write("date: " + str(datetuple) + "\n")
+        if datetuple != False:
+          start = datetuple[0]
+          end = datetuple[1]
+          line = line[:start] + line[end + 1:]
+        else:
+          score = score + 5
+        
+        entropy = get_entropy(line)
+        print('entropy:', entropy)
+        f.write('entropy: ' + str(entropy) + "\n")
+        if entropy >= 128:
+          score += 10
+        else:
+          to_add = round(entropy/128 * 10)
+          score += to_add
+        print("final score:", score, "/ 25")
+        f.write("final score: " + str(score) +  " / 25\n")
+        to_csv.append([line, score])
+
+        sum_score += score
+        count += 1
+
+      # calculate total score and average
+      average_score = sum_score / count
+      with open(inp + '.csv', 'w+', encoding='UTF8', newline='') as f1:
+        writer = csv.writer(f1)
+        writer.writerow(['password', 'score'])
+        writer.writerows(to_csv)
+        writer.writerow(['average score', average_score])
 if __name__ == "__main__":
   main()
